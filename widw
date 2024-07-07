@@ -1,0 +1,255 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local espEnabled = false
+
+local function createESP(player, color)
+    local highlight = player.Character:FindFirstChildOfClass("Highlight")
+    if not highlight then
+        highlight = Instance.new("Highlight")
+        highlight.Parent = player.Character
+        highlight.Adornee = player.Character
+    end
+    highlight.FillColor = color
+    highlight.FillTransparency = 0.5
+    highlight.OutlineColor = color
+    highlight.OutlineTransparency = 0.5
+end
+
+local function updateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local role = player.Backpack:FindFirstChild("Gun") and "Sheriff"
+                or player.Backpack:FindFirstChild("Knife") and "Murderer"
+                or player.Character:FindFirstChild("Knife") and "Murderer"
+                or player.Character:FindFirstChild("Gun") and "Sheriff"
+                or "Innocent"
+            if role == "Murderer" then
+                createESP(player, Color3.new(1, 0, 0)) -- Red for Murderer
+            elseif role == "Sheriff" then
+                createESP(player, Color3.new(0, 0, 1)) -- Blue for Sheriff
+            else
+                createESP(player, Color3.new(0, 1, 0)) -- Green for Innocent
+            end
+        end
+    end
+end
+
+local function teleportTo(character, position)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = CFrame.new(position)
+    end
+end
+
+local function goToPlayerByRole(role)
+    for _, player in pairs(Players:GetPlayers()) do
+        local playerRole = player.Backpack:FindFirstChild("Gun") and "Sheriff"
+            or player.Backpack:FindFirstChild("Knife") and "Murderer"
+            or player.Character:FindFirstChild("Knife") and "Murderer"
+            or player.Character:FindFirstChild("Gun") and "Sheriff"
+        if playerRole == role then
+            print("Teleporting to " .. role .. ": " .. player.DisplayName .. " (" .. player.Name .. ")") -- Debug print
+            teleportTo(Players.LocalPlayer.Character, player.Character.HumanoidRootPart.Position)
+            break
+        end
+    end
+end
+
+local function goToPlayer(name)
+    for _, player in pairs(Players:GetPlayers()) do
+        if string.find(string.lower(player.DisplayName), string.lower(name)) or string.find(string.lower(player.Name), string.lower(name)) then
+            print("Teleporting to Player: " .. player.DisplayName .. " (" .. player.Name .. ")") -- Debug print
+            teleportTo(Players.LocalPlayer.Character, player.Character.HumanoidRootPart.Position)
+            break
+        end
+    end
+end
+
+local function createButton(parent, text, position)
+    local button = Instance.new("TextButton")
+    button.Parent = parent
+    button.BackgroundColor3 = Color3.new(0.3, 0, 0.6)
+    button.BorderSizePixel = 0
+    button.Position = position
+    button.Size = UDim2.new(0.8, 0, 0.1, 0)
+    button.Font = Enum.Font.SourceSansBold
+    button.Text = text
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextScaled = true
+    return button
+end
+
+local function createMainGui()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "MM2"
+    screenGui.ResetOnSpawn = false
+    
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Parent = screenGui
+    frame.BackgroundColor3 = Color3.new(0.1, 0, 0.2)
+    frame.BorderSizePixel = 0
+    frame.Position = UDim2.new(0.5, -100, 0.5, -100)
+    frame.Size = UDim2.new(0, 200, 0, 200)
+    frame.Active = true
+    frame.Draggable = true
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Parent = frame
+    titleLabel.BackgroundColor3 = Color3.new(0.3, 0, 0.6)
+    titleLabel.BorderSizePixel = 0
+    titleLabel.Size = UDim2.new(1, 0, 0.2, 0)
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = "MM2"
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextScaled = true
+
+    local scrollingFrame = Instance.new("ScrollingFrame")
+    scrollingFrame.Parent = frame
+    scrollingFrame.BackgroundColor3 = Color3.new(0.1, 0, 0.2)
+    scrollingFrame.BorderSizePixel = 0
+    scrollingFrame.Position = UDim2.new(0, 0, 0.2, 0)
+    scrollingFrame.Size = UDim2.new(1, 0, 0.8, 0)
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 1.2, 0)
+    scrollingFrame.ScrollBarThickness = 8
+
+    local espButton = createButton(scrollingFrame, "ESP: OFF", UDim2.new(0.1, 0, 0.1, 0))
+    local goToRoleButton1 = createButton(scrollingFrame, "Go to Sheriff", UDim2.new(0.1, 0, 0.25, 0))
+    local goToRoleButton2 = createButton(scrollingFrame, "Go to Murderer", UDim2.new(0.1, 0, 0.4, 0))
+
+    local goToPlayerLabel = Instance.new("TextLabel")
+    goToPlayerLabel.Name = "GoToPlayerLabel"
+    goToPlayerLabel.Parent = scrollingFrame
+    goToPlayerLabel.BackgroundColor3 = Color3.new(0.3, 0, 0.6)
+    goToPlayerLabel.BorderSizePixel = 0
+    goToPlayerLabel.Position = UDim2.new(0.1, 0, 0.55, 0)
+    goToPlayerLabel.Size = UDim2.new(0.8, 0, 0.1, 0)
+    goToPlayerLabel.Font = Enum.Font.SourceSansBold
+    goToPlayerLabel.Text = "Go to Player"
+    goToPlayerLabel.TextColor3 = Color3.new(1, 1, 1)
+    goToPlayerLabel.TextScaled = true
+
+    local goToPlayerBox = Instance.new("TextBox")
+    goToPlayerBox.Name = "GoToPlayerBox"
+    goToPlayerBox.Parent = scrollingFrame
+    goToPlayerBox.BackgroundColor3 = Color3.new(0.5, 0, 0.5)
+    goToPlayerBox.BorderSizePixel = 0
+    goToPlayerBox.Position = UDim2.new(0.1, 0, 0.7, 0)
+    goToPlayerBox.Size = UDim2.new(0.8, 0, 0.1, 0)
+    goToPlayerBox.Font = Enum.Font.SourceSans
+    goToPlayerBox.PlaceholderText = "Enter display or username"
+    goToPlayerBox.Text = ""
+    goToPlayerBox.TextColor3 = Color3.new(1, 1, 1)
+    goToPlayerBox.TextScaled = true
+
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Parent = frame
+    closeButton.BackgroundColor3 = Color3.new(1, 0, 0)
+    closeButton.BorderSizePixel = 0
+    closeButton.Position = UDim2.new(1, -20, 0, 0)
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.TextScaled = true
+
+    local goToPlayerButton = createButton(scrollingFrame, "Go to Player", UDim2.new(0.1, 0, 0.85, 0))
+    goToPlayerButton.MouseButton1Click:Connect(function()
+        local name = goToPlayerBox.Text
+        if name and name ~= "" then
+            goToPlayer(name)
+        end
+    end)
+
+    espButton.MouseButton1Click:Connect(function()
+        espEnabled = not espEnabled
+        espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+        if espEnabled then
+            updateESP()
+        else
+            for _, player in pairs(Players:GetPlayers()) do
+                if player.Character then
+                    local highlight = player.Character:FindFirstChildOfClass("Highlight")
+                    if highlight then highlight:Destroy() end
+                end
+            end
+        end
+    end)
+
+    goToRoleButton1.MouseButton1Click:Connect(function()
+        goToPlayerByRole("Sheriff")
+    end)
+
+    goToRoleButton2.MouseButton1Click:Connect(function()
+        goToPlayerByRole("Murderer")
+    end)
+
+    local function createOpenGuiButton()
+        local openGuiButton = Instance.new("TextButton")
+        openGuiButton.Name = "OpenGuiButton"
+        openGuiButton.Parent = screenGui
+        openGuiButton.BackgroundColor3 = Color3.new(0.3, 0, 0.6)
+        openGuiButton.BorderSizePixel = 0
+        openGuiButton.Position = UDim2.new(0.75, 0, 0.9, 0)
+        openGuiButton.Size = UDim2.new(0, 100, 0, 50)
+        openGuiButton.Font = Enum.Font.SourceSansBold
+        openGuiButton.Text = "Open GUI"
+        openGuiButton.TextColor3 = Color3.new(1, 1, 1)
+        openGuiButton.TextScaled = true
+        openGuiButton.Active = true
+        openGuiButton.Draggable = true
+
+        openGuiButton.MouseButton1Click:Connect(function()
+            frame.Visible = true
+            openGuiButton.Visible = false
+        end)
+    end
+
+    closeButton.MouseButton1Click:Connect(function()
+        frame.Visible = false
+        createOpenGuiButton()
+    end)
+
+    createOpenGuiButton()
+    screenGui.OpenGuiButton.Visible = false
+    frame.Visible = true
+
+    return screenGui
+end
+
+local function initializeGui()
+    local player = Players.LocalPlayer
+    if not player then
+        Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+        player = Players.LocalPlayer
+    end
+    
+    local playerGui = player:WaitForChild("PlayerGui")
+    local existingGui = playerGui:FindFirstChild("MM2")
+    
+    if existingGui then
+        existingGui:Destroy()
+    end
+    
+    local newGui = createMainGui()
+    newGui.Parent = playerGui
+end
+
+initializeGui()
+
+Players.LocalPlayer.CharacterAdded:Connect(function()
+    wait(1)
+    initializeGui()
+end)
+
+-- Update ESP periodically if enabled
+spawn(function()
+    while wait(1) do
+        if espEnabled then
+            updateESP()
+        end
+    end
+end)
